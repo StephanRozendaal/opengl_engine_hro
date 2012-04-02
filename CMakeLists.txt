@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 2.8)
+project(opengl_project)
+include_directories("include")
+set(CMAKE_CXX_FLAGS "-std=c++0x -Wall")
+
+if (CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+  message( "DEBUG BUILD ON" )
+  set(CMAKE_VERBOSE_MAKEFILE_ON)
+  set(DEBUG_BUILD 1)
+  add_definitions(-DDEBUG)
+endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/Modules)
+
+find_package(OpenGL REQUIRED)
+find_package(SFML 2.0 REQUIRED system window graphics)
+find_package(Boost COMPONENTS regex REQUIRED)
+find_package(GLEW REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIRS})
+include_directories(${SFML_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${GLEW_INCLUDE_DIRS})
+add_subdirectory(src)
