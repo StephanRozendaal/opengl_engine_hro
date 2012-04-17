@@ -10,7 +10,7 @@ Mesh::~Mesh() {
 	if (elements != 0)
 		delete elements;
 	if (vertices != 0)
-		free(vertices);
+		delete vertices;
 	if (ranges != 0)
 		delete ranges;
 }
@@ -19,7 +19,7 @@ void Mesh::upload(int no_vertices, int no_elements) {
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	Shader shader = GlobalShaderManager::instance()->get_value(
-			std::string("standard_shader"));
+			std::string("phong_shader"));
 	GLuint program = shader.getProgram();
 	GLint buffer_size = 0;
 	glGenBuffers(1, &vbo_buffer); // VBO BUFFER
@@ -33,7 +33,6 @@ void Mesh::upload(int no_vertices, int no_elements) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_buffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, no_elements * sizeof(GLuint),
 			&elements[0], GL_STATIC_DRAW);
-
 	glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE,
 			&buffer_size);
 	std::cout << "element buffer size in bytes: " << buffer_size
@@ -49,32 +48,30 @@ void Mesh::upload(int no_vertices, int no_elements) {
 		glEnableVertexAttribArray(attrib_normals);
 		glVertexAttribPointer(attrib_normals, 3, GL_FLOAT, GL_FALSE,
 				sizeof(MyVertex), BUFFER_OFFSET(3));
-
 	}
 	if (vertices[0].s0 && vertices[0].t0 != 0) { // ATTRIB TEXCOORDS0
 		attrib_texcoords0 = glGetAttribLocation(program, "attrib_texcoord0");
+		glEnableVertexAttribArray(attrib_texcoords0);
 		glVertexAttribPointer(attrib_texcoords0, 2, GL_FLOAT, GL_FALSE,
 				sizeof(MyVertex), BUFFER_OFFSET(6));
-		glEnableVertexAttribArray(attrib_texcoords0);
 	}
 	if (vertices[0].s1 && vertices[0].t1 != 0) { // ATTRIB TEXCOORDS1
 		attrib_texcoords1 = glGetAttribLocation(program, "attrib_texcoord1");
+		glEnableVertexAttribArray(attrib_texcoords1);
 		glVertexAttribPointer(attrib_texcoords1, 2, GL_FLOAT, GL_FALSE,
 				sizeof(MyVertex), BUFFER_OFFSET(8));
-		glEnableVertexAttribArray(attrib_texcoords1);
 	}
 	if (vertices[0].s2 && vertices[0].t2 != 0) { // ATTRIB_TEXCOORDS2
 		attrib_texcoords2 = glGetAttribLocation(program, "attrib_texcoord2");
+		glEnableVertexAttribArray(attrib_texcoords2);
 		glVertexAttribPointer(attrib_texcoords2, 2, GL_FLOAT, GL_FALSE,
 				sizeof(MyVertex), BUFFER_OFFSET(10));
-		glEnableVertexAttribArray(attrib_texcoords2);
 	}
 	glBindVertexArray(0);
 }
 
 void Mesh::draw() {
 	glBindVertexArray(vao);
-
 	if (ibo_buffer != 0) {
 		int buffer_size = 0;
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_buffer);
@@ -93,5 +90,4 @@ void Mesh::draw() {
 		glDrawArrays(GL_LINES, 0, buffer_size / 4);
 	}
 	glBindVertexArray(0);
-	getGLerror();
 }

@@ -21,12 +21,12 @@ bool Shader::loadShaderFromFile(const char* fname, shader_types stype) {
 	std::ifstream file;
 	file.open(fname, std::ios::in);
 	if (file.is_open()) { // the file is open
-		char** shader_source = new char*[200];
-		int* filelen = new int[200];
+		char** shader_source = new char*[2000];
+		int* filelen = new int[2000];
 		int linecount;
 		for (linecount = 0; file.good(); linecount++) {
-			shader_source[linecount] = new char[256];
-			file.getline(shader_source[linecount], 256, '\0');
+			shader_source[linecount] = new char[2560];
+			file.getline(shader_source[linecount], 2560, '\0');
 			filelen[linecount] = file.gcount();
 		}
 		file.close();
@@ -174,11 +174,11 @@ bool Shader::linkIntoProgram() {
 	//if (geometry_shader > 0)
 	//	glAttachShader(program, geometry_shader);
 
-	glBindAttribLocation(program, 15, "attrib_vertex");
-	glBindAttribLocation(program, 14, "attrib_normal");
-	glBindAttribLocation(program, 13, "attrib_texcoord0");
-	glBindAttribLocation(program, 12, "attrib_texcoord1");
-	glBindAttribLocation(program, 11, "attrib_texcoord2");
+	glBindAttribLocation(program, 0, "attrib_vertex");
+	glBindAttribLocation(program, 1, "attrib_normal");
+	glBindAttribLocation(program, 2, "attrib_texcoord0");
+	glBindAttribLocation(program, 3, "attrib_texcoord1");
+	glBindAttribLocation(program, 4, "attrib_texcoord2");
 	/*link the shaders into the program */glLinkProgram(program);
 	/*check for errors */glValidateProgram(program);
 	GLint status = 0;

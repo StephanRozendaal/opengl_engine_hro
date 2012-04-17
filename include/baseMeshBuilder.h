@@ -22,5 +22,6 @@ struct commonMesh {
 	std::vector<glm::vec3> texcoords_data; // 3-floatingpoint type [u,v,(w)]
 	std::vector<glm::vec3> normals_data; // 3-floatingpoint type [x,y,z]
 	std::vector<element_data> elements_data; // unsigned shorts
+	std::vector<MyMaterial> * material_data;
 };
 #endif // BASEMESHBUILDER_H

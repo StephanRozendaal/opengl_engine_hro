@@ -11,16 +11,24 @@ const boost::regex facevertnormexp("^f[ ]+([0-9]+//[0-9]+[ ]?){3,}");
 
 const boost::regex textureexp("^vt ([-]?[0-9]*[\\.][0-9]*[ ]?){2,3}");
 const boost::regex normalexp("^vn ([-]?[0-9]*[\\.][0-9]*[ ]?){3,3}");
-const boost::regex materiallibexp("^mtllib [a-z]*.mtl");
+const boost::regex materiallibexp("^mtllib [aA-zZ]*.mtl");
+const boost::regex materialfilenexp("[aA-zZ]*.mtl");
 const boost::regex namedobjexp("^o [a-z]*");
 const boost::regex polygongroupexp("^g [a-z]*");
 const boost::regex usematerialexp("^usemtl [a-z]*");
 
 /*regex gebruikt in .mtl files. */
-const boost::regex materialdefexp("^newmtl [a-z]*");
+const boost::regex materialdefexp("^newmtl [aA-zZ_0-9]*");
+const boost::regex mtlfnameexp("[aA-zZ_]*.mtl");
+const boost::regex mtlnameexp("((?!newmtl))[aA-zZ_0-9]*$"); // the materialname withouth newmtl
+const boost::regex mtlkaexp("^Ka [0-9. ]*");
+const boost::regex mtlkdexp("^Kd [0-9. ]*");
+const boost::regex mtlksexp("^Ks [0-9. ]*");
+const boost::regex mtlkscoeffexp("^Ns [0-9. ]*");
 
 /*regex gebruikt om datatypes te vinden. */
 const boost::regex floatexp("[-]?[0-9]*[\\.][0-9]*");
+//const boost::regex floatexp("[-+]?[0-9]*\.?[0-9]+");
 const boost::regex decimalexp("[-]?[0-9]+");
 
 objMeshBuilder::objMeshBuilder() {
@@ -36,6 +44,7 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 	std::vector<MyRanges> * ranges = 0;
 	MyRanges* range = 0;
 	GLuint face_count = 0;
+	material_data = new std::vector<MyMaterial>;
 	while (infile) { // start checking OBJ file line-by-line
 		getline(infile, str);
 		if (str[str.size() - 1] == '\r')
@@ -114,7 +123,14 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 			normals_data.push_back(vert);
 		}
 		if (boost::regex_match(str, materiallibexp)) { // is a material reference file definition
-
+			std::vector<std::string> vec;
+			iterate_line<std::string>(str, mtlfnameexp, vec);
+			boost::filesystem3::path cur_path(
+					"/home/stephan/Downloads/obj_files/objects/");
+			boost::filesystem3::path path_found;
+			find_file(cur_path, vec[0], path_found);
+			std::cout << "material path: " << path_found.c_str() << std::endl;
+			processMaterialFile(std::string(path_found.c_str()));
 		}
 		if (boost::regex_match(str, namedobjexp)) { // is a named object definition
 
@@ -134,15 +150,16 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 	Mesh* mesh = new Mesh();
 	if (ranges > 0)
 		mesh->ranges = ranges;
-	mesh->vertices = (MyVertex*) malloc(sizeof(MyVertex) * array_data.size());
+	mesh->vertices = new MyVertex[elements_data.size()]();
 	mesh->elements = new GLuint[elements_data.size()];
-	for (int i = 0; i < array_data.size(); i++) {
-		mesh->vertices[i].x = array_data[i].x;
-		mesh->vertices[i].y = array_data[i].y;
-		mesh->vertices[i].z = array_data[i].z;
-	}
 	for (int i = 0; i < elements_data.size(); i++) {
 		mesh->elements[i] = elements_data[i].v_elm;
+		mesh->vertices[elements_data[i].v_elm].x =
+				array_data[elements_data[i].v_elm].x;
+		mesh->vertices[elements_data[i].v_elm].y =
+				array_data[elements_data[i].v_elm].y;
+		mesh->vertices[elements_data[i].v_elm].z =
+				array_data[elements_data[i].v_elm].z;
 		if (!normals_data.empty()) {
 			mesh->vertices[elements_data[i].n_elm].nx =
 					normals_data[elements_data[i].n_elm].x;
@@ -151,7 +168,16 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 			mesh->vertices[elements_data[i].n_elm].nz =
 					normals_data[elements_data[i].n_elm].z;
 		}
+		if (!texcoords_data.empty()) {
+			mesh->vertices[elements_data[i].n_elm].s0 =
+					texcoords_data[elements_data[i].t_elm].s;
+			mesh->vertices[elements_data[i].n_elm].t0 =
+					texcoords_data[elements_data[i].t_elm].t;
+		}
 	}
+	mesh->materials = material_data;
+	std::cout << "number of materials: " << mesh->materials->size()
+			<< std::endl;
 	mesh->upload(array_data.size(), elements_data.size());
 	return mesh;
 }
@@ -160,10 +186,63 @@ void objMeshBuilder::processMaterialFile(const std::string& fname) { // process 
 	std::ifstream infile;
 	std::string str;
 	infile.open(fname, std::ifstream::in);
+	MyMaterial temp;
+	bool first_material = true;
 	while (infile) {
 		getline(infile, str);
-		if (boost::regex_match(str, materialdefexp)) {
-
+		if (str[str.size() - 1] == '\r')
+			str.resize(str.size() - 1);
+		if (boost::regex_match(str, materialdefexp)) { // material name match
+			if (first_material)
+				first_material = false;
+			else
+				material_data->push_back(temp);
+			std::vector<std::string> vec;
+			iterate_line<std::string>(str, mtlnameexp, vec);
+			temp.material_name = vec[0];
+		}
+		if (boost::regex_match(str, mtlkaexp)) { // ambient color match
+			std::vector<float> vec;
+			iterate_line<float>(str, floatexp, vec);
+			temp.col_amb_r = vec[0];
+			temp.col_amb_g = vec[1];
+			temp.col_amb_b = vec[2];
+		}
+		if (boost::regex_match(str, mtlkdexp)) { //diffuse color match
+			std::vector<GLfloat> vec;
+			iterate_line<GLfloat>(str, floatexp, vec);
+			temp.col_dif_r = vec[0];
+			temp.col_dif_g = vec[1];
+			temp.col_dif_b = vec[2];
+		}
+		if (boost::regex_match(str, mtlksexp)) { // specular color match
+			std::vector<GLfloat> vec;
+			iterate_line<GLfloat>(str, floatexp, vec);
+			temp.col_spe_r = vec[0];
+			temp.col_spe_g = vec[1];
+			temp.col_spe_b = vec[2];
+		}
+		if (boost::regex_match(str, mtlkscoeffexp)) { //specular coefficient match
+			std::vector<GLfloat> vec;
+			iterate_line<GLfloat>(str, floatexp, vec);
+			temp.spec_coeff = vec[0];
 		}
 	}
+}
+
+bool objMeshBuilder::find_file(const boost::filesystem3::path& dir_path,
+		const std::string& file_name, boost::filesystem3::path& path_found) {
+	if (!boost::filesystem3::exists(dir_path)
+			|| !boost::filesystem3::is_directory(dir_path))
+		return false;
+	boost::filesystem3::directory_iterator end_iter;
+	for (boost::filesystem3::directory_iterator dir_itr(dir_path);
+			dir_itr != end_iter; ++dir_itr) {
+		if (dir_itr->path().filename() == file_name) {
+			path_found = dir_itr->path();
+			//std::cout << "path found! " << std::endl;
+			return true;
+		}
+	}
+	return false;
 }

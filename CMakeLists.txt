@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/Modules)
 
 find_package(OpenGL REQUIRED)
 find_package(SFML 2.0 REQUIRED system window graphics)
-find_package(Boost COMPONENTS regex REQUIRED)
+find_package(Boost COMPONENTS regex filesystem system REQUIRED)
 find_package(GLEW REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 include_directories(${SFML_INCLUDE_DIRS})

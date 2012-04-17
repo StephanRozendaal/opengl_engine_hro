@@ -6,6 +6,7 @@ uniform vec4 specular_color;
 
 varying vec3 vvaryingnormal;
 varying vec3 vvaryinglightdir;
+varying vec3 view;
 
 void main() {
   float diff = max(0.0, dot(normalize(vvaryingnormal), normalize(vvaryinglightdir)));

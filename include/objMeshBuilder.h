@@ -11,6 +11,7 @@ class objMeshBuilder : public baseMeshBuilder, protected commonMesh {
   Mesh* makeMesh(const std::string&);
  private:
   void processMaterialFile(const std::string&);
+  bool find_file(const boost::filesystem3::path&, const std::string&, boost::filesystem3::path&);
   template <typename T>
     void iterate_line(const std::string&, const boost::regex&, std::vector<T>&);
 };

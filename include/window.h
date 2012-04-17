@@ -3,7 +3,8 @@
 
 #include <SFML/Window.hpp>
 #include "renderer.h"
-
+#include "camera.h"
+#include "frame.h"
 class Window {
  public:
   Window(int, int);
@@ -12,6 +13,8 @@ class Window {
  private:
   sf::Window window;
   Renderer renderer;
+  Camera camera;
+  std::vector<Frame> entities;
 };
 
 #endif //WINDOW_H
