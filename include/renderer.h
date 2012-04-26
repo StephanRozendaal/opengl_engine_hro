@@ -19,5 +19,7 @@ public:
 private:
 	std::vector<Mesh*> objects;
 	glm::mat4 _mat_projection;
+	glm::vec4 _light_position;
+	float _light_angle;
 };
 #endif //RENDERER_H

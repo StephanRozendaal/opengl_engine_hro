@@ -16,19 +16,23 @@ Renderer::Renderer(int width, int height) {
 	glViewport(0, 0, width, height);
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
+	glEnable(GL_POLYGON_SMOOTH);
 	init_shaders();
 	init_meshes();
 	_mat_projection = glm::perspective(45.0f, (float)width / height, 0.1f, 2000.f);
+	_light_position = glm::vec4(0.0, 800.0f, 0.0f, 1.0f);
 }
 Renderer::~Renderer() {
 	GlobalShaderManager::instance()->destroy();
 }
 
 void Renderer::draw(Camera& camera, Frame& frame) {
+	if(_light_angle >= 360.0) _light_angle = 0.0;
+	_light_angle += 0.002;
+	_light_position = glm::rotateX(_light_position, _light_angle);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	std::vector<Mesh*>::iterator it;
-	Shader shdr = GlobalShaderManager::instance()->get_value(
-			std::string("phong_shader"));
+	Shader shdr = GlobalShaderManager::instance()->get_value();
 	GLuint program = shdr.getProgram();
 	glUseProgram(program);
 	GLint cam_position = glGetUniformLocation(program, "camera_position");
@@ -37,20 +41,14 @@ void Renderer::draw(Camera& camera, Frame& frame) {
 	GLint view = glGetUniformLocation(program, "view_matrix");
 	GLint normal_matrix = glGetUniformLocation(program, "normal_matrix");
 	GLint light_pos = glGetUniformLocation(program, "light_position");
-	GLint ambient_color = glGetUniformLocation(program, "ambient_color");
-	GLint diffuse_color = glGetUniformLocation(program, "diffuse_color");
-	GLint specular_color = glGetUniformLocation(program, "specular_color");
 
 	glm::mat4 m_view = camera.GetViewMatrix();
-	glm::mat4 m_model = frame.get_matrix(false);
+	glm::mat4 m_model = glm::scale(frame.get_matrix(false),glm::vec3(0.02, 0.02, 0.02));
 	glm::mat3 m_normal_matrix = glm::inverseTranspose(glm::mat3(m_view * m_model));
 	glm::vec3 m_camera_position = camera.GetPosition();
 
 	glUniform3fv(cam_position, 1, glm::value_ptr(m_camera_position));
-	glUniform4f(light_pos, 0.0f, -300.0f, 100.0f, 1.0f);
-	glUniform4f(ambient_color, 0.0f, 0.0f, 0.0f, 1.0f);
-	glUniform4f(diffuse_color, 0.59f, 0.35f, 0.035f, 1.0f);
-	glUniform4f(specular_color, 0.78f, 0.6f, 0.05f, 1.0f);
+	glUniform4fv(light_pos, 1, glm::value_ptr(_light_position));
 	glUniformMatrix4fv(projection, 1, GL_FALSE, glm::value_ptr(_mat_projection));
 	glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(m_view));
 	glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(m_model));
@@ -86,7 +84,7 @@ void Renderer::init_shaders() {
 void Renderer::init_meshes() {
 	objMeshBuilder builder;
 	Mesh* msh = builder.makeMesh(
-			"/home/stephan/Downloads/obj_files/objects/colony_ship.obj");
+			"/home/stephan/Downloads/obj_files/objects/queen.obj");
 	objects.push_back(msh);
 }
 

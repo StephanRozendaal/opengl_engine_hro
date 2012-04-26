@@ -18,10 +18,11 @@ struct MyVertex { // per-vertice data struct
 };
 
 struct MyRanges {
+	std::string name;
 	GLuint start, end;
 	GLsizei count;
-	MyRanges(GLuint start, GLuint end, GLsizei count) :
-			start(start), end(end), count(count) {
+	MyRanges(std::string name, GLuint start, GLuint end, GLsizei count) :
+			name(name), start(start), end(end), count(count) {
 	}
 };
 
@@ -72,5 +73,6 @@ public:
 	~Mesh();
 	void upload(int, int);
 	void draw();
+	void setMaterials(const std::string&);
 };
 #endif //MESH_H

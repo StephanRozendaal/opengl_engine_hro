@@ -5,6 +5,7 @@
 #include "renderer.h"
 #include "camera.h"
 #include "frame.h"
+#include "shader.h"
 class Window {
  public:
   Window(int, int);
@@ -15,6 +16,7 @@ class Window {
   Renderer renderer;
   Camera camera;
   std::vector<Frame> entities;
+  sf::Vector2i central_mouse_position; // midden van het Window.
 };
 
 #endif //WINDOW_H

@@ -214,8 +214,9 @@ void Shader::printLogs() {
 			<< std::endl;
 	std::cout << "number of active uniforms: " << active_uniforms << std::endl;
 	GLint vertex_attribs = 0;
-	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, & vertex_attribs);
-	std::cout << "max number of vertex attributes: " << vertex_attribs << std::endl;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs);
+	std::cout << "max number of vertex attributes: " << vertex_attribs
+			<< std::endl;
 	delete info_log;
 }
 
@@ -226,6 +227,19 @@ void Shader::printLogs() {
 GlobalShaderManager* GlobalShaderManager::s_instance = NULL;
 bool GlobalShaderManager::instanceflag = false;
 std::map<std::string, Shader> GlobalShaderManager::resource;
+std::map<std::string, Shader> GlobalShaderManager::cur_shader_it = nullptr;
+
+Shader GlobalShaderManager::get_value() {
+	return cur_shader_it->second;
+}
+
+void GlobalShaderManager::set_next_value() {
+	if (cur_shader_it == resource.end()) {
+		cur_shader_it = resource.begin();
+	} else {
+		cur_shader_it++;
+	}
+}
 
 Shader GlobalShaderManager::get_value(std::string val) {
 	return resource[val];
@@ -233,6 +247,7 @@ Shader GlobalShaderManager::get_value(std::string val) {
 
 void GlobalShaderManager::set_value(std::string key, Shader val) {
 	resource.insert(std::pair<std::string, Shader>(key, val));
+	cur_shader_it = resource.begin();
 }
 
 void GlobalShaderManager::destroy() {

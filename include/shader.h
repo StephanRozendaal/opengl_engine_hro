@@ -30,6 +30,7 @@ protected:
 class GlobalShaderManager {
 private:
 	static std::map<std::string, Shader> resource;
+	static std::map<std::string, Shader>::iterator cur_shader_it;
 	static GlobalShaderManager * s_instance;
 	static bool instanceflag;
 	GlobalShaderManager() {
@@ -39,6 +40,8 @@ public:
 	~GlobalShaderManager() {
 		instanceflag = false;
 	}
+	Shader get_value();
+	void set_next_value();
 	Shader get_value(std::string);
 	void set_value(std::string, Shader);
 	static GlobalShaderManager* instance() {

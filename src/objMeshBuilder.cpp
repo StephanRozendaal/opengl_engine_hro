@@ -15,12 +15,14 @@ const boost::regex materiallibexp("^mtllib [aA-zZ]*.mtl");
 const boost::regex materialfilenexp("[aA-zZ]*.mtl");
 const boost::regex namedobjexp("^o [a-z]*");
 const boost::regex polygongroupexp("^g [a-z]*");
-const boost::regex usematerialexp("^usemtl [a-z]*");
+const boost::regex polygongroupnameexp("((?!^g))[aA-zZ_0-9]*$");
+const boost::regex usematerialexp("^usemtl [aA-zZ_0-9]*");
+const boost::regex usematerialgetnameexp("((?!usemtl))[aA-zZ_0-9]*$"); // to get material name
 
 /*regex gebruikt in .mtl files. */
 const boost::regex materialdefexp("^newmtl [aA-zZ_0-9]*");
 const boost::regex mtlfnameexp("[aA-zZ_]*.mtl");
-const boost::regex mtlnameexp("((?!newmtl))[aA-zZ_0-9]*$"); // the materialname withouth newmtl
+const boost::regex mtlnameexp("((?!newmtl))[aA-zZ_0-9]*$"); // the materialname without newmtl
 const boost::regex mtlkaexp("^Ka [0-9. ]*");
 const boost::regex mtlkdexp("^Kd [0-9. ]*");
 const boost::regex mtlksexp("^Ks [0-9. ]*");
@@ -39,26 +41,22 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 	std::ifstream infile;
 	std::string str;
 	infile.open(fname, std::ifstream::in);
-	bool in_face_value = false;
-	bool in_vertex_value = true;
+	bool b_use_material = false;
+	bool b_polygon_group = false;
+	std::string polygon_group_name;
 	std::vector<MyRanges> * ranges = 0;
 	MyRanges* range = 0;
-	GLuint face_count = 0;
+	GLsizei face_count = 0;
+	std::vector<element_data>::iterator it_vec_start; // houdt de range bij van vectoren.
 	material_data = new std::vector<MyMaterial>;
+	elements_data.reserve(1000000);
+	array_data.reserve(1000000);
 	while (infile) { // start checking OBJ file line-by-line
 		getline(infile, str);
 		if (str[str.size() - 1] == '\r')
 			str.resize(str.size() - 1);
 		if (boost::regex_match(str, faceexp)) { //is a face definition
-
-			if (!in_face_value) {
-				in_vertex_value = false;
-				if (range == 0) {
-					range = new MyRanges { 0, 0, 0 };
-					range->start = face_count;
-				}
-				range->count += 3;
-			}
+			face_count += 3;
 			if (boost::regex_match(str, facevertexp)) { // face definition for vertexes
 				std::vector<GLuint> vec;
 				iterate_line<GLuint>(str, decimalexp, vec);
@@ -90,21 +88,9 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 				elements_data.push_back(
 						element_data(vec[6] - 1, vec[7] - 1, vec[8] - 1)); // vertex element value 3
 			} else { //error: unknown face definition
-
 			}
-			face_count++;
 		}
 		if (boost::regex_match(str, vertexexp)) { // is a vertex definition
-			if (!in_vertex_value) {
-				in_face_value = false;
-				range->end = face_count + range->count;
-				if (ranges == 0)
-					ranges = new std::vector<MyRanges>;
-				ranges->push_back(
-						MyRanges(range->start, range->end, range->count));
-				range = 0;
-				in_vertex_value = true;
-			}
 			std::vector<GLfloat> vec;
 			iterate_line<GLfloat>(str, floatexp, vec);
 			glm::vec4 vert(vec[0], vec[1], vec[2], 1.0);
@@ -136,11 +122,59 @@ Mesh* objMeshBuilder::makeMesh(const std::string& fname) {
 
 		}
 		if (boost::regex_match(str, polygongroupexp)) { // is a polygon group definition
-
+			std::vector<std::string> vec;
+			iterate_line<std::string>(str, polygongroupnameexp, vec); // get the polygon group name
+			polygon_group_name = vec[0];
+			b_polygon_group = true;
 		}
 		if (boost::regex_match(str, usematerialexp)) { // is a material usage definition
+			std::vector<std::string> vec;
+			iterate_line<std::string>(str, usematerialgetnameexp, vec); // get the polygon group name
+			std::string material_name = vec[0];
 
+			if (it_vec_start != elements_data.begin())
+				it_vec_start = elements_data.begin();
+			if (range != 0) {
+				const std::pair<std::vector<element_data>::const_iterator,
+						std::vector<element_data>::const_iterator> temp_elm =
+						std::minmax_element(
+								(it_vec_start + 1),
+								elements_data.end(),
+								[](const element_data& rhs, const element_data& lhs) {
+									return rhs.v_elm > lhs.v_elm;
+								});
+				range->start = temp_elm.first->v_elm;
+				range->end = temp_elm.second->v_elm;
+				range->count = face_count;
+				if (ranges == 0)
+					ranges = new std::vector<MyRanges>;
+				ranges->push_back(
+						MyRanges(range->name, range->start, range->end,
+								range->count));
+			} else
+				range = new MyRanges { material_name, 0, 0, 0 };
+			b_use_material = true;
+			it_vec_start = elements_data.end();
 		}
+	}
+
+	if (b_use_material) {
+		if (it_vec_start != elements_data.begin())
+			it_vec_start = elements_data.begin();
+		const std::pair<std::vector<element_data>::const_iterator,
+				std::vector<element_data>::const_iterator> temp_elm =
+				std::minmax_element(
+						(it_vec_start + 1),
+						elements_data.end(),
+						[](const element_data& rhs, const element_data& lhs) {
+							return rhs.v_elm < lhs.v_elm;
+						});
+		range->start = temp_elm.first->v_elm;
+		range->end = temp_elm.second->v_elm;
+		range->count = face_count;
+		ranges = new std::vector<MyRanges>;
+		ranges->push_back(
+				MyRanges(range->name, range->start, range->end, range->count));
 	}
 	infile.close();
 	std::cout << " size of vertex elements: " << elements_data.size()
@@ -228,6 +262,7 @@ void objMeshBuilder::processMaterialFile(const std::string& fname) { // process 
 			temp.spec_coeff = vec[0];
 		}
 	}
+	material_data->push_back(temp);
 }
 
 bool objMeshBuilder::find_file(const boost::filesystem3::path& dir_path,
@@ -245,4 +280,8 @@ bool objMeshBuilder::find_file(const boost::filesystem3::path& dir_path,
 		}
 	}
 	return false;
+}
+
+bool objMeshBuilder::compare_elements(element_data& rhs, element_data& lhs) {
+	return (rhs.v_elm < lhs.v_elm);
 }

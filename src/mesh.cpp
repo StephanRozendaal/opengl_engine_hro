@@ -69,7 +69,22 @@ void Mesh::upload(int no_vertices, int no_elements) {
 	}
 	glBindVertexArray(0);
 }
-
+void Mesh::setMaterials(const std::string& name) {
+	Shader shdr = GlobalShaderManager::instance()->get_value();
+	GLuint program = shdr.getProgram();
+	GLint ambient_color = glGetUniformLocation(program, "ambient_color");
+	GLint diffuse_color = glGetUniformLocation(program, "diffuse_color");
+	GLint specular_color = glGetUniformLocation(program, "specular_color");
+	std::vector<MyMaterial>::iterator matit;
+	for (matit = materials->begin(); matit != materials->end(); matit++) {
+		if (name == matit->material_name) {
+			glUniform4f(ambient_color, matit->col_amb_r, matit->col_amb_g, matit->col_amb_b, 1.0f);
+			glUniform4f(diffuse_color, matit->col_dif_r, matit->col_dif_g, matit->col_dif_b, 1.0f);
+			glUniform4f(specular_color, matit->col_spe_r, matit->col_spe_g, matit->col_spe_b, 1.0f);
+			break;
+		}
+	}
+}
 void Mesh::draw() {
 	glBindVertexArray(vao);
 	if (ibo_buffer != 0) {
@@ -77,13 +92,16 @@ void Mesh::draw() {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_buffer);
 		glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE,
 				&buffer_size);
-		//if (ranges > 0) {
-		//	std::vector<MyRanges>::iterator elemit;
-		//	for (elemit = ranges->begin(); elemit != ranges->end(); elemit++)
-		//		glDrawRangeElements(GL_TRIANGLES, elemit->start, elemit->end, elemit->count * sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
-		//} else
-		glDrawElements(GL_TRIANGLES, buffer_size / sizeof(GLuint),
-				GL_UNSIGNED_INT, 0);
+		if (ranges->size() > 0) {
+			std::vector<MyRanges>::iterator elemit;
+			for (elemit = ranges->begin(); elemit != ranges->end(); elemit++) {
+				setMaterials(elemit->name);
+				glDrawRangeElements(GL_TRIANGLES, elemit->start, elemit->end,
+						elemit->count, GL_UNSIGNED_INT, NULL);
+			}
+		} else
+			glDrawElements(GL_LINES, buffer_size / sizeof(GLuint),
+					GL_UNSIGNED_INT, 0);
 	} else {
 		int buffer_size = 0;
 		glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);

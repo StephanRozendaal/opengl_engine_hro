@@ -13,11 +13,11 @@ void main() {
   gl_FragColor = diff * diffuse_color;
   gl_FragColor += ambient_color;
   vec3 vreflection = normalize(reflect(-normalize(vvaryinglightdir), 
-  normalize(vvaryingnormal)));
+				       normalize(vvaryingnormal)));
   float spec = max(0.0, dot(normalize(vvaryingnormal), vreflection));
   
   if(diff != 0 ) {
-  	float fSpec = pow(spec, 128.0);
-  	gl_FragColor.rgb += vec3(fSpec, fSpec, fSpec);
-  	}
+    float fSpec = pow(spec, 128.0);
+    gl_FragColor.rgb += vec3(fSpec, fSpec, fSpec);
+  }
 }
