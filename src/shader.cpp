@@ -227,7 +227,7 @@ void Shader::printLogs() {
 GlobalShaderManager* GlobalShaderManager::s_instance = NULL;
 bool GlobalShaderManager::instanceflag = false;
 std::map<std::string, Shader> GlobalShaderManager::resource;
-std::map<std::string, Shader> GlobalShaderManager::cur_shader_it = nullptr;
+
 
 Shader GlobalShaderManager::get_value() {
 	return cur_shader_it->second;
